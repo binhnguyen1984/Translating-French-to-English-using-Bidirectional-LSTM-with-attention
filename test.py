@@ -83,31 +83,6 @@ for i, (input_text, target_text) in enumerate(zip(input_texts, target_texts)):
             # and will not include the start character.
             decoder_target_data[i, t - 1, target_token_index[char]] = 1.
 
-def one_step_attention(a, s_prev):
-    """
-    Performs one step of attention: Outputs a context vector computed as a dot product of the attention weights
-    "alphas" and the hidden states "a" of the Bi-LSTM.
-    
-    Arguments:
-    a -- hidden state output of the Bi-LSTM, numpy-array of shape (m, Tx, 2*n_a)
-    s_prev -- previous hidden state of the (post-attention) LSTM, numpy-array of shape (m, n_s)
-    
-    Returns:
-    context -- context vector, input of the next (post-attetion) LSTM cell
-    """
-    repeator = RepeatVector(max_encoder_seq_length)
-    concatenator = Concatenate(axis=-1)
-    densor = Dense(max_encoder_seq_length, activation='tanh')
-    activator = Activation('softmax')
-    dotor = Dot(axes = 1)
-
-    s_prev = repeator(s_prev)
-    # Use concatenator to concatenate a and s_prev on the last axis (≈ 1 line)
-    concat = concatenator([s_prev,a])
-    e = densor(concat)
-    alphas = activator(e)
-    context = dotor([alphas,a])
-    return context
 
 class ExtractAxis(Layer):
     """
@@ -145,6 +120,32 @@ class Attention(Layer):
     def compute_output_shape(self, input_shape):
         return (input_shape[0][0], input_shape[0][1], input_shape[1][1]*2)
 
+def one_step_attention(a, s_prev):
+    """
+    Performs one step of attention: Outputs a context vector computed as a dot product of the attention weights
+    "alphas" and the hidden states "a" of the Bi-LSTM.
+    
+    Arguments:
+    a -- hidden state output of the Bi-LSTM, numpy-array of shape (m, Tx, 2*n_a)
+    s_prev -- previous hidden state of the (post-attention) LSTM, numpy-array of shape (m, n_s)
+    
+    Returns:
+    context -- context vector, input of the next (post-attetion) LSTM cell
+    """
+    repeator = RepeatVector(max_encoder_seq_length)
+    concatenator = Concatenate(axis=-1)
+    densor = Dense(max_encoder_seq_length, activation='tanh')
+    activator = Activation('softmax')
+    dotor = Dot(axes = 1)
+
+    s_prev = repeator(s_prev)
+    # Use concatenator to concatenate a and s_prev on the last axis (≈ 1 line)
+    concat = concatenator([s_prev,a])
+    e = densor(concat)
+    alphas = activator(e)
+    context = dotor([alphas,a])
+    return context
+
 
 # Define an input sequence and process it.
 
@@ -178,29 +179,22 @@ def train_model(Tx, Ty,num_encoder_tokens, num_decoder_tokens):
         ground_true = extract_axis(Y)
         repeat = RepeatVector(context.shape[1].value)(ground_true)
         concat = Concatenate(axis=-1)([context, repeat])
-        # Step 2.B: Apply the post-attention LSTM cell to the "context" vector.
-        # Don't forget to pass: initial_state = [hidden state, cell state] (≈ 1 line)
+       # initial_state = [hidden state, cell state]
         s, _, c = decoder_lstm(concat,initial_state = [s, c])
         
-        # Step 2.C: Apply Dense layer to the hidden state output of the decoder-attention LSTM (≈ 1 line)
+        # Apply Dense layer to the hidden state output of the decoder-attention LSTM
         out = output_layer(s)
         
-        # Step 2.D: Append "out" to the "outputs" list (≈ 1 line)
+        # Append "out" to the "outputs" list (≈ 1 line)
         outputs.append(out)
     
-    # Step 3: Create model instance taking three inputs and returning the list of outputs. (≈ 1 line)
+    # Create model instance taking three inputs and returning the list of outputs.
     model = Model(inputs = [X,s0,c0,Y], outputs = outputs)
-    
-    ### END CODE HERE ###
-    
+        
     return model
 
 # Define the model that will turn
 # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
-
-#model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
-
-# Run training
 model = train_model(max_encoder_seq_length, max_decoder_seq_length, num_encoder_tokens, num_decoder_tokens)
 s0 = np.zeros((len(input_texts), n_s))
 c0 = np.zeros((len(input_texts), n_s))
@@ -210,16 +204,11 @@ opt = Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, decay=0.01)
 model.compile(loss='categorical_crossentropy', optimizer=opt)
 #model.compile(optimizer='rmsprop', loss='categorical_crossentropy')
 
+# Run training
 model.fit([encoder_input_data, s0, c0, decoder_input_data], outputs, epochs=epochs, batch_size=batch_size,
           validation_split=0.2)
 
-#model.compile(optimizer='rmsprop', loss='categorical_crossentropy')
-#model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
-#          batch_size=batch_size,
-#          epochs=epochs,
-#          validation_split=0.2)
 # Save model
-
 #model.save('att.h5')
 
 reverse_input_char_index = dict(
@@ -275,9 +264,6 @@ def decode_sequence(input_seq):
         Y0 = np.zeros(shape=(1,num_decoder_tokens))
         Y0[0,sample_out_index]=1.
         prediction.append(sample_char)
-        # Step 2.D: Append "out" to the "outputs" list (≈ 1 line)
-        #outputs.append(out)
-
     return prediction
 
 
