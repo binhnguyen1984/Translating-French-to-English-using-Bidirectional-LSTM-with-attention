@@ -1,15 +1,11 @@
 from __future__ import print_function
-
 import tensorflow as tf
 from keras.models import Model
+from keras.layers import Input, LSTM, Dense, Bidirectional, Concatenate,  Dot, Activation, RepeatVector
 import numpy as np
-from keras.models import load_model
-from nltk.translate.bleu_score import corpus_bleu
-from keras.layers import Bidirectional, Concatenate, Permute, Dot, Input, LSTM, Multiply, Reshape
-from keras.layers import RepeatVector, Dense, Activation, Lambda, Dropout
 from keras.optimizers import Adam
 from keras.engine.base_layer import Layer
-from keras import backend as K
+from nltk.translate.bleu_score import corpus_bleu
 
 batch_size = 64  # Batch size for training.
 epochs = 100  # Number of epochs to train for.
