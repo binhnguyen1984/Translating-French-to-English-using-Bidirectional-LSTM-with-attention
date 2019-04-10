@@ -100,9 +100,9 @@ class ExtractAxis(Layer):
         return tf.gather(inputs, indices=self.index, axis=self.axis)
     
     def get_config(self):
-        config= {'index': self.index, 'axis':self.axis}
-        base_config = super(ExtractAxis, self).get_config()
-        return dict(list(base_config.items())+ list(config.items()))
+        config = super(ExtractAxis, self).get_config()
+        config.update({'index': self.index, 'axis':self.axis})
+        return config
     
     def compute_output_shape(self, input_shape):
         return tuple(input_shape[a] for a in range(len(input_shape)) if a!=self.axis)
